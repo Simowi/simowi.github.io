@@ -457,9 +457,23 @@ function renderTL(){
 function checkTL(){
   TL.done=true; const right=TL.sel.filter((id,i)=>TL.sorted[i].id===id).length; const all=right===5; if(all){TL.score++; SND.ok(); buzz(18);} else { SND.bad(); buzz([30,45,30]); }
   renderTL();
-  $("#tlr").innerHTML=`<div class="feed ${all?'ok':'bad'}">${all?"Helt riktig rekkefølge!":right+" av 5 på rett plass."}</div><div class="card info">${TL.sorted.map((w,i)=>`<div class="row"><span><b>${i+1}. ${esc(w.year)}</b> ${esc(w.title)}</span><span style="color:var(--mute);text-align:right">${esc(w.artist)}</span></div>`).join("")}</div><button class="big" id="tn">${TL.round+1>=TL.sets?"Se resultat":"Neste"}</button>`;
+  $("#tlr").innerHTML=`<div class="feed ${all?'ok':'bad'}">${all?"Helt riktig rekkefølge!":right+" av 5 på rett plass."}</div><div class="card info">${TL.sorted.map((w,i)=>`<div class="row"><span><b>${i+1}. ${esc(w.year)}</b> ${esc(w.title)}</span><span style="color:var(--mute);text-align:right">${esc(w.artist)}</span></div>`).join("")}</div>${all?"":`<button class="big" id="tfix" style="background:none;border:2px solid var(--gold);color:var(--gold);margin-bottom:10px">Vis riktig rekkefølge</button>`}<button class="big" id="tn">${TL.round+1>=TL.sets?"Se resultat":"Neste"}</button>`;
+  if($("#tfix")) $("#tfix").onclick=()=>{ $("#tfix").remove(); animSortTL(); };
   $("#tn").onclick=()=>{ TL.round++; nextTL(); };
   $("#tlr").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function animSortTL(){
+  const box=document.querySelector(".tl"); if(!box) return;
+  const cards=[...box.querySelectorAll(".tls.f")]; const first=new Map(cards.map(c=>[c,c.getBoundingClientRect()]));
+  const order=TL.sorted.map(w=>cards.find(c=>c.dataset.id===w.id)).filter(Boolean);
+  order.forEach(c=>box.appendChild(c));
+  order.forEach((c,i)=>{ c.classList.remove("bad"); c.classList.add("okk"); const b=c.querySelector("b"); if(b) b.textContent=i+1; });
+  order.forEach((c,i)=>{ const f=first.get(c), l=c.getBoundingClientRect(); const dy=f.top-l.top; if(!dy) return;
+    c.style.transition="none"; c.style.transform=`translateY(${dy}px)`; c.style.zIndex=5; c.getBoundingClientRect();
+    setTimeout(()=>{ c.style.transition="transform .9s cubic-bezier(.4,0,.2,1)"; c.style.transform=""; SND.tick&&SND.tick(); },120+i*140);
+    setTimeout(()=>{ c.style.transition=""; c.style.zIndex=""; },1300+i*140); });
+  buzz(12);
+  const fd=document.querySelector("#tlr .feed"); if(fd) fd.textContent="Slik er riktig rekkefølge.";
 }
 function endTL(){ if(TL.score===TL.sets){SND.win();confetti();}
   $("#app").innerHTML=`<h1>${TL.score===TL.sets?"Full pott!":"Tidslinje ferdig."}</h1><p class="sub">${TL.score} av ${TL.sets} tidslinjer i helt riktig rekkefølge.</p><button class="big" id="ta">Spill igjen</button><button class="ghost" id="th">Til start</button>`;
